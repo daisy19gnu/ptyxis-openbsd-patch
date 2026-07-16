@@ -2,7 +2,7 @@
 
 COMMENT =	GTK4-based terminal emulator for GNOME
 
-V =		49.3
+V =		50.1
 DISTNAME =	ptyxis-${V}
 PKGNAME =	ptyxis-${V}
 

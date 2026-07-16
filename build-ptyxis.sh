@@ -87,6 +87,8 @@ else
 fi
 
 cd "\$SRCDIR"
+git checkout -- .
+git clean -fdx
 git checkout "\$VERSION"
 git clean -fdx
 

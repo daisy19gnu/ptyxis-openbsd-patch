@@ -1,0 +1,33 @@
+$OpenBSD$
+
+Replace g_file_set_contents() with g_file_set_contents_full() to set
+explicit file permissions (0640) and use atomic write via
+G_FILE_SET_CONTENTS_CONSISTENT (write to temp file, then rename(2)).
+
+The g_file_test() existence check is preserved to prevent silently
+overwriting an existing palette file.  The atomic rename(2) used by
+CONSISTENT mode avoids partially-written files if the process is
+interrupted, and replaces any symlink at the destination path with a
+real file rather than following it.
+
+Note: on OpenBSD, the unveil(2) call in patch-src_main_c-openbsd-pledge-unveil
+restricts filesystem access to only the unveiled paths, providing additional
+mitigation against any residual TOCTOU window between the g_file_test check
+and the write.  Line numbers account for the +4 lines from patch-src_main_c
+and +15 lines from patch-src_main_c-openbsd-pledge-unveil.
+
+Index: src/main.c
+--- src/main.c.orig
++++ src/main.c
+@@ -175,7 +175,9 @@
+           exit (EXIT_FAILURE);
+         }
+ 
+-      if (!g_file_set_contents (dest, contents, len, &error))
++      if (!g_file_set_contents_full (dest, contents, len,
++                                     G_FILE_SET_CONTENTS_CONSISTENT,
++                                     0640, &error))
+         {
+           g_printerr ("%s: %s\n", _("Error"), error->message);
+           exit (EXIT_FAILURE);
+ 

@@ -7,10 +7,10 @@ Ptyxis は GTK4/libadwaita ベースの GNOME ターミナルエミュレータ�
 
 | 項目 | バージョン |
 |------|-----------|
-| Ptyxis | **49.3** |
-| OpenBSD | 7.8 amd64 |
-| パッチリビジョン | r3 |
-| ビルド確認日 | 2026-03-06 |
+| Ptyxis | **50.1** |
+| OpenBSD | 7.9 amd64 |
+| パッチリビジョン | r1 |
+| ビルド確認日 | 2026-07-16 |
 
 ## 動作確認済み依存ライブラリ
 
@@ -27,7 +27,7 @@ Ptyxis は GTK4/libadwaita ベースの GNOME ターミナルエミュレータ�
 ```
 OpenBSD-Ptyxis/
 ├── openbsd-port/              # OpenBSD port ファイル群
-│   ├── Makefile              # ビルド定義 (V=49.3)
+│   ├── Makefile              # ビルド定義 (V=50.1)
 │   ├── distinfo              # チェックサム (SHA256)
 │   ├── README.OpenBSD        # OpenBSD 固有のビルド手順
 │   ├── patches/              # OpenBSD 用パッチ (16種)
@@ -41,15 +41,16 @@ OpenBSD-Ptyxis/
 │   │   ├── patch-src_ptyxis-client_c-security-dbus-auth     # D-Bus 認証チェック
 │   │   ├── patch-src_ptyxis-custom-link_c-security-null     # NULL参照防止
 │   │   ├── patch-src_ptyxis-palette_c-perf-hashtable        # O(1) パレット検索
-│   │   ├── patch-src_ptyxis-tab_c                           # sys/wait.h + zoom配列タイポ修正
+│   │   ├── patch-src_ptyxis-tab_c                           # sys/wait.h インクルード追加
 │   │   ├── patch-src_ptyxis-tab_c-perf-freeze-notify        # freeze-notify 最適化
 │   │   ├── patch-src_ptyxis-tab_c-perf-notify-batch        # 複数notify一括化（zoom/title等）
 │   │   ├── patch-src_ptyxis-terminal_c-perf-list-append     # リストアペンド最適化
 │   │   ├── patch-src_ptyxis-terminal_c-security-regex-assert # 正規表現コンパイルエラー処理
 │   │   ├── patch-src_ptyxis-util_c                          # wordexp(3)無効化 + NULL修正
-│   │   ├── ptyxis-49.3-r1/                                  # 旧リビジョン保存
-│   │   ├── ptyxis-49.3-r2/                                  # 旧リビジョン保存
-│   │   └── ptyxis-49.3-r3/                                  # 現行リビジョン保存
+│   │   ├── ptyxis-49.3-r1/                                  # 旧バージョン保存
+│   │   ├── ptyxis-49.3-r2/                                  # 旧バージョン保存
+│   │   ├── ptyxis-49.3-r3/                                  # 旧バージョン保存
+│   │   └── ptyxis-50.1-r1/                                  # 現行リビジョン保存
 │   └── pkg/                  # パッケージメタデータ
 │       ├── DESCR             # パッケージ説明文
 │       └── PLIST             # インストールファイルリスト
@@ -85,9 +86,9 @@ Fedora ホストから SSH 経由で OpenBSD にビルド・インストール�
 # OpenBSD マシンにて
 git clone https://gitlab.gnome.org/chergert/ptyxis.git
 cd ptyxis
-git checkout 49.3
+git checkout 50.1
 
-# パッチ適用（15種全て、アルファベット順）
+# パッチ適用（16種全て、アルファベット順）
 for p in /path/to/openbsd-port/patches/patch-*; do
   patch -p0 < "$p"
 done
@@ -162,20 +163,13 @@ GTK4 と D-Bus はソケットファイルやキャッシュのためにこの�
 
 ### patch-src_ptyxis-tab_c
 
-2つの修正を含みます。
-
 **sys/wait.h インクルード追加**
 
 `WIFEXITED`、`WIFSIGNALED` 等のマクロが OpenBSD では `sys/wait.h` からのみ提供されます。
 
-**zoom_font_scales 配列のタイポ修正（上流バグ）**
-
-```c
-// Before (bug): カンマが要素区切りとなり17要素になる
-1.0 * 1.2 * 1.2 * 1.2 * 1.2 * 1.2 * 1.2 * 1,2,
-// After (fix)
-1.0 * 1.2 * 1.2 * 1.2 * 1.2 * 1.2 * 1.2 * 1.2,
-```
+> 旧リビジョン（49.3 系）では `zoom_font_scales` 配列のカンマ/ピリオドのタイポ修正
+> （`1,2` → `1.2`）も含んでいましたが、上流 50.1 で配列が半ステップ実装に
+> 書き換えられ、タイポ自体が解消されたため本パッチから削除しました。
 
 ### patch-src_ptyxis-util_c
 
@@ -232,7 +226,15 @@ D-Bus 接続確立前に認証チェックを追加します（OpenBSD 上で検
 
 ### patch-src_ptyxis-tab_c-perf-freeze-notify
 
-`freeze-notify` / `thaw-notify` を使用して、タブ状態変更時の不要なプロパティ通知を削減します。
+`freeze-notify` / `thaw-notify` を使用して、`ptyxis_tab_invalidate_progress()` の
+3つの `g_object_notify_by_pspec()` 呼び出しを1回の通知サイクルにまとめます。
+
+### patch-src_ptyxis-tab_c-perf-notify-batch
+
+`ptyxis-tab.c` 内の複数プロパティ通知箇所（4箇所）を `freeze-notify` / `thaw-notify` で
+バッチ化します。対象は `ptyxis_tab_set_title_prefix()`、`ptyxis_tab_set_zoom()`
+（Ctrl+=/- 毎に発火）、`ptyxis_tab_poll_agent_finish()`（コマンド実行毎、最も高頻度）、
+`ptyxis_tab_set_ignore_osc_title()` です。
 
 ### patch-src_ptyxis-terminal_c-perf-list-append
 
@@ -247,18 +249,17 @@ PCRE2 バージョン差異等でコンパイルが失敗してもアプリが�
 
 パッチは Ptyxis バージョンに連動したリビジョン番号で管理します。
 
-- 命名規則: `ptyxis-{VERSION}-r{N}`（例: `ptyxis-49.3-r3`）
+- 命名規則: `ptyxis-{VERSION}-r{N}`（例: `ptyxis-50.1-r1`）
 - 各リビジョンはディレクトリ保存（tar.gz は .gitignore で除外）
 - パッチは `diff -u` で生成（OpenBSD の patch は hunk ヘッダーに厳密）
 - `patches/patch-*` は常に最新リビジョンのコピーを配置
 
 ## 動作確認状況
 
-- [x] ビルド成功（OpenBSD 7.8 amd64）
+- [x] ビルド成功（OpenBSD 7.9 amd64）
 - [x] 全16パッチ適用成功
-- [x] 起動確認
-- [x] 複数タブの作成・切り替え
-- [x] 基本的な端末操作
+- [x] インストール後のバイナリ起動・バージョン表示確認（`ptyxis --version`）
+- [ ] 実機での複数タブ・端末操作の目視確認（未実施、次回引き継ぎ）
 
 ## 利用できない機能（Linux 専用）
 
