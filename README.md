@@ -3,6 +3,8 @@
 OpenBSD 向けの [Ptyxis](https://gitlab.gnome.org/chergert/ptyxis) port です。
 Ptyxis は GTK4/libadwaita ベースの GNOME ターミナルエミュレータです。
 
+姉妹 port: [ptyxis-miudarwin-patch](https://github.com/daisy19gnu/ptyxis-miudarwin-patch)
+
 ## 現在のバージョン
 
 | 項目 | バージョン |
@@ -274,3 +276,4 @@ PCRE2 バージョン差異等でコンパイルが失敗してもアプリが�
 - [Ptyxis 上流リポジトリ](https://gitlab.gnome.org/chergert/ptyxis)
 - [Ptyxis リリースタグ](https://gitlab.gnome.org/chergert/ptyxis/-/tags)
 - [OpenBSD Ports ガイド](https://www.openbsd.org/faq/ports/)
+- [ptyxis-miudarwin-patch](https://github.com/daisy19gnu/ptyxis-miudarwin-patch) — 姉妹 port (Darwin/XNU)

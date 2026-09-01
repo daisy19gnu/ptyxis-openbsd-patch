@@ -1,4 +1,4 @@
-From: MINORI IKEDA <daisysi9@gmail.com>
+From: MINORI IKEDA <daisy19@gmail.com>
 Subject: [PATCH] util: fix NULL dereference in ptyxis_path_expand()
 
 When wordexp() fails (e.g. out of memory, or bad input), `ret` remains

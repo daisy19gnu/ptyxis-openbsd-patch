@@ -1,9 +1,3 @@
-AUTOMATION.md
-CLAUDE_BUILD_REPORT.md
-DEBUG_LOG.md
-DELIVERABLES.md
-claude-continue.sh
-
 # Build artifacts
 *.tgz
 *.tar.gz
@@ -19,12 +13,7 @@ build/
 *~
 .DS_Store
 
-# Claude memory (private, not for version control)
-.claude/
-
-# Private notes and AI-specific files
-GEMINI.md
-CLAUDE.md
+# Private notes (URLs, local paths, work-in-progress reports)
 Github.md
 PACKAGE_README.md
 

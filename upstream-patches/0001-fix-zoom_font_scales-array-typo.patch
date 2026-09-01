@@ -1,4 +1,4 @@
-From: MINORI IKEDA <daisysi9@gmail.com>
+From: MINORI IKEDA <daisy19@gmail.com>
 Subject: [PATCH] tab: fix typo in zoom_font_scales array initializer
 
 In the zoom_font_scales[] initializer, the last large-zoom entry reads:
