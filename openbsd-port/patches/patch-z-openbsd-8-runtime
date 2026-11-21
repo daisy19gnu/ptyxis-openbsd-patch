@@ -1,0 +1,55 @@
+Keep the GUI filesystem restriction with unveil; VTE needs TIOCPKT.
+Let VTE enable PTY packet mode and keep the agent pledged.
+
+--- src/main.c.orig
++++ src/main.c
+@@ -281,7 +281,8 @@
+   gtk_init ();
+ 
+ #ifdef __OpenBSD__
+-  /* Unveil paths needed by a terminal emulator + GTK4 */
++  /* VTE requires TIOCPKT, which pledge does not permit on OpenBSD.
++   * Restrict the GUI filesystem with unveil instead. */
+   unveil ("/usr", "rx");
+   unveil ("/etc", "r");
+   unveil ("/dev", "rw");
+@@ -293,13 +294,6 @@
+   unveil (g_get_user_runtime_dir (), "rwc");
+   unveil ("/var/run", "rw");
+   unveil (NULL, NULL);
+-
+-  if (pledge ("stdio rpath wpath cpath fattr inet dns unix "
+-              "proc exec prot_exec tty tmppath", NULL) == -1)
+-    {
+-      g_printerr ("pledge: %s\n", g_strerror (errno));
+-      exit (EXIT_FAILURE);
+-    }
+ #endif
+ 
+   app = ptyxis_application_new (APP_ID, flags);
+--- agent/ptyxis-agent.c.orig
++++ agent/ptyxis-agent.c
+@@ -227,8 +227,9 @@
+    *   sendfd     - pass PTY master fd to ptyxis over D-Bus
+    *   recvfd     - receive fds from ptyxis
+    *   getpw      - getpwuid/getpwnam for login shell resolution
++   *   prot_exec  - load GIO modules after pledge
+    */
+-  if (pledge ("stdio rpath wpath cpath tty proc exec unix sendfd recvfd getpw", NULL) == -1)
++  if (pledge ("stdio rpath wpath cpath tty proc exec unix sendfd recvfd getpw prot_exec", NULL) == -1)
+     {
+       g_printerr ("ptyxis-agent: pledge: %s\n", g_strerror (errno));
+       return EXIT_FAILURE;
+--- agent/ptyxis-agent-util.c.orig
++++ agent/ptyxis-agent-util.c
+@@ -158,7 +158,9 @@
+     }
+ #endif
+ 
+-#ifdef TIOCPKT
++#if defined(__OpenBSD__)
++  /* The pledged agent cannot enable packet mode. VTE enables it on receipt. */
++#elif defined(TIOCPKT)
+   if (ret != -1)
+     {
+       static int one = 1;
